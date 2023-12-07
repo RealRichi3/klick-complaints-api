@@ -50,7 +50,7 @@ app.use('/upload', multerUpload.single('image'), async (req, res, next) => {
             status: 'pending',
         })
 
-        fs.unlinkSync(image.path)
+        await fs.unlinkSync(image.path)
 
         res.status(201).json({
             message: 'Complaint created successfully',
