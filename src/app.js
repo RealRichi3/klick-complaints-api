@@ -9,13 +9,14 @@ const cors = require('cors')
 const { uploadImageToCloudinary } = require('./cloudinary')
 const Complaint = require('./model')
 const mongoose = require('mongoose')
-const { submitToGoogleForm } = require('./uploads/mailchimp')
+const { submitToGoogleForm } = require('./form')
+const { randomUUID } = require('crypto')
 
 const multerUpload = multer({
     storage: multer.diskStorage({
         destination: 'src/uploads',
         filename: (req, file, cb) => {
-            cb(null, `${Date.now()}-${file.originalname}`)
+            cb(null, `${randomUUID()}-${file.originalname}`)
         }
     })
 })
@@ -36,6 +37,7 @@ app.use('/upload', multerUpload.single('image'), async (req, res, next) => {
     } = req.body
 
     try {
+
         const image = req.file
         const imageUrl = await uploadImageToCloudinary({
             path: image.path,
@@ -53,7 +55,7 @@ app.use('/upload', multerUpload.single('image'), async (req, res, next) => {
             status: 'pending',
         })
 
-        await fs.unlinkSync(image.path)
+        fs.unlinkSync(image.path)
 
         res.status(201).json({
             message: 'Complaint created successfully',
