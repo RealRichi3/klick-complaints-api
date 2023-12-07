@@ -9,6 +9,7 @@ const cors = require('cors')
 const { uploadImageToCloudinary } = require('./cloudinary')
 const Complaint = require('./model')
 const mongoose = require('mongoose')
+const { submitToGoogleForm } = require('./uploads/mailchimp')
 
 const multerUpload = multer({
     storage: multer.diskStorage({
@@ -41,6 +42,8 @@ app.use('/upload', multerUpload.single('image'), async (req, res, next) => {
             fileName: image.filename,
             destinationPath: 'complaints'
         })
+
+        await submitToGoogleForm(name, complaint, imageUrl)
 
         const complaintRecord = await Complaint.create({
             name,
