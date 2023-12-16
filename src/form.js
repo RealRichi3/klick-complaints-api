@@ -3,9 +3,9 @@ const axios = require('axios');
 
 async function submitToGoogleForm(fullname, complaint, documentUrl) {
     const entryIds = {
-        fullname: 'entry.820165930',
-        complaint: 'entry.1992804102',
-        documentUrl: 'entry.1613862344'
+        fullname: 'entry.2101748424',
+        complaint: 'entry.2135753796',
+        documentUrl: 'entry.2119364926'
     };
 
     const encodedFullname = encodeURIComponent(fullname);
