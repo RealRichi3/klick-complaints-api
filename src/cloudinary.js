@@ -67,6 +67,10 @@ module.exports = {
                     .split("data:video/")[1]
                     .split(";base64")[0];
                 // Write binary buffer to a temporary video file
+                const dir = __dirname + "/temp";
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir);
+                }
                 const tempFilePath =
                     __dirname +
                     "/temp/" +
