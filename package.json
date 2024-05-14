@@ -11,15 +11,21 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.6.2",
-    "cloudinary": "^1.41.0",
+    "axios": "^1.6.8",
+    "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "google-auth-library": "^9.10.0",
+    "google-spreadsheet": "^4.1.2",
     "helmet": "^7.1.0",
+    "ioredis": "^5.4.1",
+    "mailtrap": "^3.3.0",
     "mongoose": "^8.0.2",
+    "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.7",
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "uuidv4": "^6.2.13"
   }
 }
