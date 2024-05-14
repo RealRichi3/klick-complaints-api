@@ -69,7 +69,7 @@ module.exports = {
                 // Write binary buffer to a temporary video file
                 const tempFilePath =
                     __dirname +
-                    "/../temp/" +
+                    "/temp/" +
                     uuid().toString() +
                     "." +
                     fileExtension; // You can use any file name and extension
