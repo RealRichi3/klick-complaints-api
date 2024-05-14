@@ -74,7 +74,7 @@ app.use("/upload", multerUpload.single("image"), async (req, res, next) => {
     }
 });
 
-app.use("/", async (req, res, next) => {
+app.use("/preloved", async (req, res, next) => {
     try {
         await new Preloved().submitForm({ formData: req.body });
         console.log("Form submitted successfully");
