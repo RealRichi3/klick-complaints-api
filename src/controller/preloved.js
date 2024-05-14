@@ -127,28 +127,5 @@ class Preloved {
             .catch((e) => console.log(e.response.data));
     }
 }
-axios
-    .post(
-        "https://send.api.mailtrap.io/api/send",
-        {
-            from: {
-                email: "mailtrap@klick.africa",
-                name: "Klick Preloved",
-            },
-            to: [{ email: "molunorichie@gmail.com" }],
-            template_uuid: "45290ebf-7550-46e1-b266-820424f488fe",
-            template_variables: {
-                tracking_number: "123123",
-            },
-        },
-        {
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${process.env.EMAIL_PASS}`,
-            },
-        },
-    )
-    .then(console.log)
-    .catch((e) => console.log(e.response.data));
 
 module.exports = Preloved;
