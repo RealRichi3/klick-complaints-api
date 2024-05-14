@@ -87,9 +87,11 @@ module.exports = {
                         overwrite: true,
                         format: fileExtension,
                     })
-                    .then((res) => resolve(res.secure_url))
-                    .catch(reject)
-                    .finally(() => fs.unlinkSync(tempFilePath));
+                    .then((res) => {
+                        resolve(res.secure_url);
+                        fs.unlinkSync(tempFilePath);
+                    })
+                    .catch(reject);
             } catch (error) {
                 reject(error);
             }
