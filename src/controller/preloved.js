@@ -35,7 +35,8 @@ class Preloved {
         } = formData;
 
         const emptyFields = Object.keys(formData).filter(
-            (key) => !formData[key] || formData[key] === "",
+            (key) =>
+                !formData[key] || (formData[key] === "" && key != "wear_tear"),
         );
         if (emptyFields.length) {
             throw new Error(
