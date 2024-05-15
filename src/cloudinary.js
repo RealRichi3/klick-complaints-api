@@ -62,6 +62,16 @@ module.exports = {
     uploadVideoFromDataURI: async function (dataURI) {
         return new Promise(async (resolve, reject) => {
             try {
+                const matches = dataURI.match(/^data:(.+);base64/);
+                if (!matches) {
+                    throw new Error("Invalid data URI");
+                }
+                const mimeType = matches[1];
+                const extensions = {
+                    "image/jpeg": "jpg",
+                    "image/png": "png",
+                    "video/mp4": "mp4", // Add more mime types as needed
+                };
                 // Convert base64-encoded data to binary buffer
                 const fileExtension = dataURI
                     .split("data:video/")[1]
@@ -92,7 +102,7 @@ module.exports = {
                         folder: "klick_product_videos",
                         public_id: uuid().toString(),
                         overwrite: true,
-                        format: "auto",
+                        format: extensions[mimeType],
                     })
                     .then((res) => {
                         resolve(res.secure_url);
