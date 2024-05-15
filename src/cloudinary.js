@@ -92,7 +92,7 @@ module.exports = {
                         folder: "klick_product_videos",
                         public_id: uuid().toString(),
                         overwrite: true,
-                        format: fileExtension,
+                        format: "auto",
                     })
                     .then((res) => {
                         resolve(res.secure_url);
