@@ -12,119 +12,169 @@ const mailTrapClient = new MailtrapClient({
 
 class Preloved {
     async submitForm({ formData }) {
-        const {
-            category,
-            name,
-            product_age_group,
-            original_price,
-            selling_price,
-            condition,
-            year_of_purchase,
-            front_side_image,
-            left_side_image,
-            back_side_image,
-            right_side_image,
-            product_video,
-            seller_first_name,
-            seller_last_name,
-            seller_email,
-            seller_phone_number,
-            seller_address,
-            seller_city,
-            seller_state,
-        } = formData;
-
-        const emptyFields = Object.keys(formData).filter(
-            (key) => !formData[key] || formData[key] === "",
-        );
-        if (emptyFields.length) {
-            throw new Error(
-                `The following fields are required: ${emptyFields.join(", ")}`,
-            );
-        }
-
-        const serviceAccountAuth = new JWT({
-            email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-            key: atob(process.env.GOOGLE_PRIVATE_KEY ?? "").replace(
-                /\\n/g,
-                "\n",
-            ),
-            scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-        });
-
-        let requestBody = {};
-
-        const images = {
-            left_side_image: await cloudinary.uploadBase64FileToCloudinary(
-                left_side_image,
-                "left_side_image",
-                "image",
-            ),
-            front_side_image: await cloudinary.uploadBase64FileToCloudinary(
+        try {
+            const {
+                category,
+                name,
+                product_age_group,
+                original_price,
+                selling_price,
+                condition,
+                year_of_purchase,
                 front_side_image,
-                "front_side_image",
-                "image",
-            ),
-            back_side_image: await cloudinary.uploadBase64FileToCloudinary(
+                left_side_image,
                 back_side_image,
-                "back_side_image",
-                "image",
-            ),
-            right_side_image: await cloudinary.uploadBase64FileToCloudinary(
                 right_side_image,
-                "right_side_image",
-                "image",
-            ),
-        };
+                product_video,
+                seller_first_name,
+                seller_last_name,
+                seller_email,
+                seller_phone_number,
+                seller_address,
+                seller_city,
+                seller_state,
+            } = formData;
 
-        requestBody = { ...formData, ...images };
+            const emptyFields = Object.keys(formData).filter(
+                (key) => !formData[key] || formData[key] === "",
+            );
+            if (emptyFields.length) {
+                throw new Error(
+                    `The following fields are required: ${emptyFields.join(", ")}`,
+                );
+            }
 
-        const video = await cloudinary.uploadVideoFromDataURI(product_video);
-        requestBody["product_video"] = video;
+            const serviceAccountAuth = new JWT({
+                email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+                key: atob(process.env.GOOGLE_PRIVATE_KEY ?? "").replace(
+                    /\\n/g,
+                    "\n",
+                ),
+                scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+            });
 
-        console.log({ requestBody });
-        const doc = new GoogleSpreadsheet(
-            process.env.GOOGLE_SHEET_ID,
-            serviceAccountAuth,
-        );
+            let requestBody = {};
 
-        await doc.loadInfo();
+            const images = {
+                left_side_image: await cloudinary
+                    .uploadBase64FileToCloudinary(
+                        left_side_image,
+                        "left_side_image",
+                        "image",
+                    )
+                    .catch((error) =>
+                        console.error(
+                            `Error in uploadBase64FileToCloudinary  (left_side_image): ${error}`,
+                        ),
+                    ),
+                front_side_image: await cloudinary
+                    .uploadBase64FileToCloudinary(
+                        front_side_image,
+                        "front_side_image",
+                        "image",
+                    )
+                    .catch((error) =>
+                        console.error(
+                            `Error in uploadBase64FileToCloudinary (front_side_image): ${error}`,
+                        ),
+                    ),
+                back_side_image: await cloudinary
+                    .uploadBase64FileToCloudinary(
+                        back_side_image,
+                        "back_side_image",
+                        "image",
+                    )
+                    .catch((error) =>
+                        console.error(
+                            `Error in uploadBase64FileToCloudinary (back_side_image): ${error}`,
+                        ),
+                    ),
+                right_side_image: await cloudinary
+                    .uploadBase64FileToCloudinary(
+                        right_side_image,
+                        "right_side_image",
+                        "image",
+                    )
+                    .catch((error) =>
+                        console.error(
+                            `Error in uploadBase64FileToCloudinary (right_side_image): ${error}`,
+                        ),
+                    ),
+            };
 
-        const lastTrackingNumber = await redisClient.get("lastTrackingNumber");
-        const trackingNumber = lastTrackingNumber
-            ? parseInt(lastTrackingNumber) + 1
-            : 1;
+            requestBody = { ...formData, ...images };
 
-        requestBody.tracking_number = trackingNumber;
-        const sheet = doc.sheetsByIndex[0];
-        await sheet.setHeaderRow([...Object.keys(requestBody)]);
+            const video = await cloudinary
+                .uploadVideoFromDataURI(product_video)
+                .catch((error) =>
+                    console.error(`Error in uploadVideoFromDataURI: ${error}`),
+                );
+            requestBody["product_video"] = video;
 
-        await sheet.addRow(requestBody);
-        await redisClient.set("lastTrackingNumber", trackingNumber.toString());
+            console.log({ requestBody });
+            const doc = new GoogleSpreadsheet(
+                process.env.GOOGLE_SHEET_ID,
+                serviceAccountAuth,
+            );
 
-        await axios
-            .post(
-                "https://send.api.mailtrap.io/api/send",
-                {
-                    from: {
-                        email: "mailtrap@klick.africa",
-                        name: "Klick Preloved",
+            await doc
+                .loadInfo()
+                .catch((error) => console.error(`Error in loadInfo: ${error}`));
+
+            const lastTrackingNumber = await redisClient
+                .get("lastTrackingNumber")
+                .catch((error) =>
+                    console.error(`Error in redisClient.get: ${error}`),
+                );
+            const trackingNumber = lastTrackingNumber
+                ? parseInt(lastTrackingNumber) + 1
+                : 1;
+
+            requestBody.tracking_number = trackingNumber;
+            const sheet = doc.sheetsByIndex[0];
+            await sheet
+                .setHeaderRow([...Object.keys(requestBody)])
+                .catch((error) =>
+                    console.error(`Error in setHeaderRow: ${error}`),
+                );
+
+            await sheet
+                .addRow(requestBody)
+                .catch((error) => console.error(`Error in addRow: ${error}`));
+            await redisClient
+                .set("lastTrackingNumber", trackingNumber.toString())
+                .catch((error) =>
+                    console.error(`Error in redisClient.set: ${error}`),
+                );
+
+            await axios
+                .post(
+                    "https://send.api.mailtrap.io/api/send",
+                    {
+                        from: {
+                            email: "mailtrap@klick.africa",
+                            name: "Klick Preloved",
+                        },
+                        to: [{ email: seller_email }],
+                        template_uuid: "45290ebf-7550-46e1-b266-820424f488fe",
+                        template_variables: {
+                            tracking_number: trackingNumber.toString(),
+                        },
                     },
-                    to: [{ email: seller_email }],
-                    template_uuid: "45290ebf-7550-46e1-b266-820424f488fe",
-                    template_variables: {
-                        tracking_number: trackingNumber.toString(),
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${process.env.EMAIL_PASS}`,
+                        },
                     },
-                },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${process.env.EMAIL_PASS}`,
-                    },
-                },
-            )
-            .then(console.log)
-            .catch((e) => console.log(e.response.data));
+                )
+                .then(console.log)
+                .catch((e) =>
+                    console.error(`Error in axios post: ${e.response.data}`),
+                );
+        } catch (error) {
+            console.error(`Error in submitForm: ${error}`);
+        }
     }
 }
 
