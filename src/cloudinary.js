@@ -71,6 +71,7 @@ module.exports = {
                 if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir);
                 }
+
                 const tempFilePath =
                     __dirname +
                     "/temp/" +
