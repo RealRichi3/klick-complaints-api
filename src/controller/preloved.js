@@ -35,10 +35,9 @@ class Preloved {
         } = formData;
 
         const emptyFields = Object.keys(formData).filter(
-            (key) =>
-                !formData[key] || (formData[key] === "" && key != "wear_tear"),
+            (key) => !formData[key] || formData[key] === "",
         );
-        if (emptyFields.length) {
+        if (emptyFields.length && emptyFields.join("") !== "wear_tear") {
             throw new Error(
                 `The following fields are required: ${emptyFields.join(", ")}`,
             );
