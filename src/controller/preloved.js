@@ -106,9 +106,10 @@ class Preloved {
 
             const video = await cloudinary
                 .uploadVideoFromDataURI(product_video)
-                .catch((error) =>
-                    console.error(`Error in uploadVideoFromDataURI: ${error}`),
-                );
+                .catch((error) => {
+                    console.error(`Error in uploadVideoFromDataURI: ${error}`);
+                    console.error(error);
+                });
             requestBody["product_video"] = video;
 
             console.log({ requestBody });

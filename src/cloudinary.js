@@ -84,6 +84,8 @@ module.exports = {
 
                 fs.writeFileSync(tempFilePath, uri, "base64");
 
+                console.log({ tempFilePath, fileExtension });
+
                 await cloudinary.v2.uploader
                     .upload(tempFilePath, {
                         resource_type: "video",
