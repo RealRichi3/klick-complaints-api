@@ -34,14 +34,14 @@ class Preloved {
             seller_state,
         } = formData;
 
-        const emptyFields = Object.keys(formData).filter(
-            (key) => !formData[key] || formData[key] === "",
-        );
-        if (emptyFields.length && emptyFields.join("") !== "wear_tear") {
-            throw new Error(
-                `The following fields are required: ${emptyFields.join(", ")}`,
-            );
-        }
+        // const emptyFields = Object.keys(formData).filter(
+        //     (key) => !formData[key] || formData[key] === "",
+        // );
+        // if (emptyFields.length && emptyFields.join("") !== "wear_tear") {
+        //     throw new Error(
+        //         `The following fields are required: ${emptyFields.join(", ")}`,
+        //     );
+        // }
 
         const serviceAccountAuth = new JWT({
             email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
