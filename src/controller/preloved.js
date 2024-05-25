@@ -1,4 +1,5 @@
 const { JWT } = require("google-auth-library");
+const fs = require("fs");
 const cloudinary = require("../cloudinary");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const redisClient = require("../redis");
@@ -11,37 +12,10 @@ const mailTrapClient = new MailtrapClient({
 });
 
 class Preloved {
-    async submitForm({ formData }) {
-        const {
-            category,
-            name,
-            product_age_group,
-            original_price,
-            selling_price,
-            condition,
-            year_of_purchase,
-            front_side_image,
-            left_side_image,
-            back_side_image,
-            right_side_image,
-            product_video,
-            seller_first_name,
-            seller_last_name,
-            seller_email,
-            seller_phone_number,
-            seller_address,
-            seller_city,
-            seller_state,
-        } = formData;
+    async submitForm({ formData }, files) {
+        const { seller_email } = formData;
 
-        // const emptyFields = Object.keys(formData).filter(
-        //     (key) => !formData[key] || formData[key] === "",
-        // );
-        // if (emptyFields.length && emptyFields.join("") !== "wear_tear") {
-        //     throw new Error(
-        //         `The following fields are required: ${emptyFields.join(", ")}`,
-        //     );
-        // }
+        console.log({ files });
 
         const serviceAccountAuth = new JWT({
             email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -54,33 +28,39 @@ class Preloved {
 
         let requestBody = {};
 
-        const images = {
-            left_side_image: await cloudinary.uploadBase64FileToCloudinary(
-                left_side_image,
-                "left_side_image",
-                "image",
-            ),
-            front_side_image: await cloudinary.uploadBase64FileToCloudinary(
-                front_side_image,
-                "front_side_image",
-                "image",
-            ),
-            back_side_image: await cloudinary.uploadBase64FileToCloudinary(
-                back_side_image,
-                "back_side_image",
-                "image",
-            ),
-            right_side_image: await cloudinary.uploadBase64FileToCloudinary(
-                right_side_image,
-                "right_side_image",
-                "image",
-            ),
+        const uploadedFiles = {
+            left_side_image: await cloudinary.uploadImageToCloudinary({
+                path: files.left_side_image[0].path,
+                fileName: files.left_side_image[0].filename,
+                destinationPath: "klick_product_images",
+            }),
+            front_side_image: await cloudinary.uploadImageToCloudinary({
+                path: files.front_side_image[0].path,
+                fileName: files.front_side_image[0].filename,
+                destinationPath: "klick_product_images",
+            }),
+            back_side_image: await cloudinary.uploadImageToCloudinary({
+                path: files.back_side_image[0].path,
+                fileName: files.back_side_image[0].filename,
+                destinationPath: "klick_product_images",
+            }),
+            right_side_image: await cloudinary.uploadImageToCloudinary({
+                path: files.right_side_image[0].path,
+                fileName: files.right_side_image[0].filename,
+                destinationPath: "klick_product_images",
+            }),
+            product_video: await cloudinary.uploadImageToCloudinary({
+                path: files.product_video[0].path,
+                fileName: files.product_video[0].filename,
+                destinationPath: "klick_product_videos",
+            }),
         };
 
-        requestBody = { ...formData, ...images };
-
-        const video = await cloudinary.uploadVideoFromDataURI(product_video);
-        requestBody["product_video"] = video;
+        // Delete the files after uploading
+        Object.values(files).forEach((file) => {
+            fs.unlinkSync(file[0].path);
+        });
+        requestBody = { ...formData, ...uploadedFiles };
 
         console.log({ requestBody });
         const doc = new GoogleSpreadsheet(

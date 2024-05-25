@@ -74,22 +74,53 @@ app.use("/upload", multerUpload.single("image"), async (req, res, next) => {
     }
 });
 
-app.use("/preloved", async (req, res, next) => {
-    try {
-        console.log({ body: req.body });
-        await new Preloved().submitForm({ formData: req.body });
-        console.log("Form submitted successfully");
-        return res.status(201).json({
-            message: "Form submitted successfully",
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).send({
-            status: "success",
-            message: "An error occured while submitting the form",
-        });
-    }
-});
+app.use(
+    "/preloved",
+    multerUpload.fields([
+        {
+            name: "front_side_image",
+            maxCount: 1,
+        },
+        {
+            name: "left_side_image",
+            maxCount: 1,
+        },
+        {
+            name: "right_side_image",
+            maxCount: 1,
+        },
+        {
+            name: "back_side_image",
+            maxCount: 1,
+        },
+        {
+            name: "product_video",
+            maxCount: 1,
+        },
+    ]),
+    async (req, res, next) => {
+        try {
+            const files = req.files;
+            await new Preloved().submitForm(
+                {
+                    formData: req.body,
+                    files,
+                },
+                files,
+            );
+            console.log("Form submitted successfully");
+            return res.status(201).json({
+                message: "Form submitted successfully",
+            });
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({
+                status: "success",
+                message: "An error occured while submitting the form",
+            });
+        }
+    },
+);
 
 async function connectToDatabase() {
     try {
