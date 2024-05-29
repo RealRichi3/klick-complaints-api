@@ -1,9 +1,9 @@
 const { JWT } = require("google-auth-library");
-const fs = require("fs").promises;
-const cloudinary = require("../cloudinary");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
+const cloudinary = require("../cloudinary");
 const redisClient = require("../redis");
 const axios = require("axios");
+const fs = require("fs").promises; // Use promises for async file operations
 const { MailtrapClient } = require("mailtrap");
 
 const mailTrapClient = new MailtrapClient({
@@ -42,27 +42,22 @@ class Preloved {
             });
         };
 
-        const uploadedFiles = {
-            left_side_image: await uploadFile(
-                files.left_side_image[0],
-                "klick_product_images",
-            ),
-            front_side_image: await uploadFile(
-                files.front_side_image[0],
-                "klick_product_images",
-            ),
-            back_side_image: await uploadFile(
-                files.back_side_image[0],
-                "klick_product_images",
-            ),
-            right_side_image: await uploadFile(
-                files.right_side_image[0],
-                "klick_product_images",
-            ),
-            product_video: await uploadVideo(
-                files.product_video[0],
-                "klick_product_videos",
-            ),
+        // Upload files in parallel
+        const uploadedFiles = await Promise.all([
+            uploadFile(files.left_side_image[0], "klick_product_images"),
+            uploadFile(files.front_side_image[0], "klick_product_images"),
+            uploadFile(files.back_side_image[0], "klick_product_images"),
+            uploadFile(files.right_side_image[0], "klick_product_images"),
+            uploadVideo(files.product_video[0], "klick_product_videos"),
+        ]);
+
+        // Map uploaded files to formData keys
+        const filesMapping = {
+            left_side_image: uploadedFiles[0],
+            front_side_image: uploadedFiles[1],
+            back_side_image: uploadedFiles[2],
+            right_side_image: uploadedFiles[3],
+            product_video: uploadedFiles[4],
         };
 
         // Delete the files after uploading
@@ -70,7 +65,7 @@ class Preloved {
             Object.values(files).map((file) => fs.unlink(file[0].path)),
         );
 
-        const requestBody = { ...formData, ...uploadedFiles };
+        const requestBody = { ...formData, ...filesMapping };
         console.log({ requestBody });
 
         const doc = new GoogleSpreadsheet(
