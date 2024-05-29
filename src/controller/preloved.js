@@ -15,7 +15,6 @@ class Preloved {
     async submitForm({ formData }, files) {
         const { seller_email } = formData;
 
-        files.forEach(file => console.log({ file }))
         console.log({ files });
 
         const serviceAccountAuth = new JWT({
