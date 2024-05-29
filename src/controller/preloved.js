@@ -49,7 +49,7 @@ class Preloved {
                 fileName: files.right_side_image[0].filename,
                 destinationPath: "klick_product_images",
             }),
-            product_video: await cloudinary.uploadImageToCloudinary({
+            product_video: await cloudinary.uploadVideoToCloudinary({
                 path: files.product_video[0].path,
                 fileName: files.product_video[0].filename,
                 destinationPath: "klick_product_videos",
