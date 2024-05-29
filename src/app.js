@@ -2,10 +2,9 @@ const express = require("express");
 const dotenv = require("dotenv");
 dotenv.config();
 const morgan = require("morgan");
-
 const helmet = require("helmet");
 const multer = require("multer");
-const fs = require("fs");
+const fs = require("fs").promises; // Use promises for async file operations
 const cors = require("cors");
 const { uploadImageToCloudinary } = require("./cloudinary");
 const Complaint = require("./model");
@@ -25,20 +24,21 @@ const multerUpload = multer({
 
 const app = express();
 
-// app.use(helmet());
-// Show request payload size in morgan log
-const ORIGIN = process.env.ALLOWED_ORIGINS.split(",");
-console.log({ ORIGIN });
+// Middleware configuration
+app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json({ limit: "500mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+const ORIGIN = process.env.ALLOWED_ORIGINS.split(",");
+console.log({ ORIGIN });
 app.use(
     cors({
         origin: ORIGIN,
     }),
 );
 
-app.use("/upload", multerUpload.single("image"), async (req, res, next) => {
+app.use("/upload", multerUpload.single("image"), async (req, res) => {
     const { name, orderNumber, complaint } = req.body;
 
     try {
@@ -59,14 +59,14 @@ app.use("/upload", multerUpload.single("image"), async (req, res, next) => {
             status: "pending",
         });
 
-        fs.unlinkSync(image.path);
+        await fs.unlink(image.path); // Use async file deletion
 
         res.status(201).json({
             message: "Complaint created successfully",
             data: complaintRecord,
         });
     } catch (error) {
-        console.log(error);
+        console.error(error);
         res.status(500).json({
             message: "Unable to create complaint",
             error: error.message,
@@ -77,46 +77,24 @@ app.use("/upload", multerUpload.single("image"), async (req, res, next) => {
 app.use(
     "/preloved",
     multerUpload.fields([
-        {
-            name: "front_side_image",
-            maxCount: 1,
-        },
-        {
-            name: "left_side_image",
-            maxCount: 1,
-        },
-        {
-            name: "right_side_image",
-            maxCount: 1,
-        },
-        {
-            name: "back_side_image",
-            maxCount: 1,
-        },
-        {
-            name: "product_video",
-            maxCount: 1,
-        },
+        { name: "front_side_image", maxCount: 1 },
+        { name: "left_side_image", maxCount: 1 },
+        { name: "right_side_image", maxCount: 1 },
+        { name: "back_side_image", maxCount: 1 },
+        { name: "product_video", maxCount: 1 },
     ]),
-    async (req, res, next) => {
+    async (req, res) => {
         try {
             const files = req.files;
-            await new Preloved().submitForm(
-                {
-                    formData: req.body,
-                    files,
-                },
-                files,
-            );
+            const preloved = new Preloved();
+            await preloved.submitForm({ formData: req.body }, files);
             console.log("Form submitted successfully");
-            return res.status(201).json({
-                message: "Form submitted successfully",
-            });
+            res.status(201).json({ message: "Form submitted successfully" });
         } catch (error) {
-            console.log(error);
+            console.error(error);
             res.status(500).send({
-                status: "success",
-                message: "An error occured while submitting the form",
+                status: "error",
+                message: "An error occurred while submitting the form",
             });
         }
     },
@@ -124,10 +102,13 @@ app.use(
 
 async function connectToDatabase() {
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
         console.log("Connected to database");
     } catch (error) {
-        console.log("Unable to connect to database");
+        console.error("Unable to connect to database", error);
         process.exit(1);
     }
 }
@@ -139,7 +120,7 @@ async function startServer() {
             console.log(`Server started on port ${process.env.PORT}`);
         });
     } catch (error) {
-        console.log("Unable to start server");
+        console.error("Unable to start server", error);
         process.exit(1);
     }
 }
