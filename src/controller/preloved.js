@@ -104,7 +104,6 @@ class Preloved {
                     },
                 },
             )
-            .then(console.log)
             .catch((e) => console.log(e.response.data));
     }
 }
