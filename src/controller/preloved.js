@@ -1,11 +1,11 @@
 const { JWT } = require("google-auth-library");
-const fs = require("fs");
+const fs = require("fs").promises;
 const cloudinary = require("../cloudinary");
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const redisClient = require("../redis");
-const { default: axios } = require("axios");
+const axios = require("axios");
+const { MailtrapClient } = require("mailtrap");
 
-const MailtrapClient = require("mailtrap").MailtrapClient;
 const mailTrapClient = new MailtrapClient({
     endpoint: "https://send.api.mailtrap.io/",
     token: process.env.EMAIL_PASS,
@@ -26,48 +26,57 @@ class Preloved {
             scopes: ["https://www.googleapis.com/auth/spreadsheets"],
         });
 
-        let requestBody = {};
+        const uploadFile = async (file, destinationPath) => {
+            return cloudinary.uploadImageToCloudinary({
+                path: file.path,
+                fileName: file.filename,
+                destinationPath,
+            });
+        };
+
+        const uploadVideo = async (file, destinationPath) => {
+            return cloudinary.uploadVideoToCloudinary({
+                path: file.path,
+                fileName: file.filename,
+                destinationPath,
+            });
+        };
 
         const uploadedFiles = {
-            left_side_image: await cloudinary.uploadImageToCloudinary({
-                path: files.left_side_image[0].path,
-                fileName: files.left_side_image[0].filename,
-                destinationPath: "klick_product_images",
-            }),
-            front_side_image: await cloudinary.uploadImageToCloudinary({
-                path: files.front_side_image[0].path,
-                fileName: files.front_side_image[0].filename,
-                destinationPath: "klick_product_images",
-            }),
-            back_side_image: await cloudinary.uploadImageToCloudinary({
-                path: files.back_side_image[0].path,
-                fileName: files.back_side_image[0].filename,
-                destinationPath: "klick_product_images",
-            }),
-            right_side_image: await cloudinary.uploadImageToCloudinary({
-                path: files.right_side_image[0].path,
-                fileName: files.right_side_image[0].filename,
-                destinationPath: "klick_product_images",
-            }),
-            product_video: await cloudinary.uploadVideoToCloudinary({
-                path: files.product_video[0].path,
-                fileName: files.product_video[0].filename,
-                destinationPath: "klick_product_videos",
-            }),
+            left_side_image: await uploadFile(
+                files.left_side_image[0],
+                "klick_product_images",
+            ),
+            front_side_image: await uploadFile(
+                files.front_side_image[0],
+                "klick_product_images",
+            ),
+            back_side_image: await uploadFile(
+                files.back_side_image[0],
+                "klick_product_images",
+            ),
+            right_side_image: await uploadFile(
+                files.right_side_image[0],
+                "klick_product_images",
+            ),
+            product_video: await uploadVideo(
+                files.product_video[0],
+                "klick_product_videos",
+            ),
         };
 
         // Delete the files after uploading
-        Object.values(files).forEach((file) => {
-            fs.unlinkSync(file[0].path);
-        });
-        requestBody = { ...formData, ...uploadedFiles };
+        await Promise.all(
+            Object.values(files).map((file) => fs.unlink(file[0].path)),
+        );
 
+        const requestBody = { ...formData, ...uploadedFiles };
         console.log({ requestBody });
+
         const doc = new GoogleSpreadsheet(
             process.env.GOOGLE_SHEET_ID,
             serviceAccountAuth,
         );
-
         await doc.loadInfo();
 
         const lastTrackingNumber = await redisClient.get("lastTrackingNumber");
@@ -77,13 +86,12 @@ class Preloved {
 
         requestBody.tracking_number = trackingNumber;
         const sheet = doc.sheetsByIndex[0];
-        await sheet.setHeaderRow([...Object.keys(requestBody)]);
-
+        await sheet.setHeaderRow(Object.keys(requestBody));
         await sheet.addRow(requestBody);
         await redisClient.set("lastTrackingNumber", trackingNumber.toString());
 
-        await axios
-            .post(
+        try {
+            await axios.post(
                 "https://send.api.mailtrap.io/api/send",
                 {
                     from: {
@@ -102,8 +110,13 @@ class Preloved {
                         Authorization: `Bearer ${process.env.EMAIL_PASS}`,
                     },
                 },
-            )
-            .catch((e) => console.log(e.response.data));
+            );
+        } catch (error) {
+            console.error(
+                "Error sending email:",
+                error.response?.data || error.message,
+            );
+        }
     }
 }
 
