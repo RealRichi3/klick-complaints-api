@@ -27,7 +27,7 @@ const app = express();
 // Middleware configuration
 app.use(helmet());
 app.use(morgan("dev"));
-app.use(express.json({ limit: "500mb" }));
+app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const ORIGIN = process.env.ALLOWED_ORIGINS.split(",");
