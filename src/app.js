@@ -22,7 +22,6 @@ const multerUpload = multer({
         },
     }),
 });
-
 const app = express();
 
 // Middleware configuration
@@ -77,6 +76,18 @@ app.use("/upload", multerUpload.single("image"), async (req, res) => {
 
 app.post(
     "/preloved",
+    (req, res, next) => {
+        const requestId = randomUUID();
+        const startTime = new Date().getTime();
+
+        res.locals.requestId = requestId;
+        res.locals.startTime = startTime;
+
+        logger.info(`[START] Preloved Form Submission`, {
+            meta: { logId: requestId },
+        });
+        next();
+    },
     multerUpload.fields([
         { name: "front_side_image", maxCount: 1 },
         { name: "left_side_image", maxCount: 1 },
@@ -85,11 +96,18 @@ app.post(
         { name: "product_video", maxCount: 1 },
     ]),
     async (req, res) => {
-        const requestId = randomUUID();
-        const startTime = new Date().getTime();
+        const timetaken =
+            (new Date().getTime() - res.locals.startTime) / 1000 + "s";
+        logger.info(`[POST_MULTER] Preloved Form Submission`, {
+            meta: { logId: res.locals.requestId, timetaken },
+        });
+
         try {
             const files = req.files;
-            const preloved = new Preloved({ logId: requestId, startTime });
+            const preloved = new Preloved({
+                logId: res.locals.requestId,
+                startTime: res.locals.startTime,
+            });
             await preloved.submitForm({ formData: req.body }, files);
             console.log("Form submitted successfully");
             res.status(201).json({ message: "Form submitted successfully" });
