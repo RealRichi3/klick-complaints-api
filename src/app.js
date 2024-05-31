@@ -10,8 +10,9 @@ const { uploadImageToCloudinary } = require("./cloudinary");
 const Complaint = require("./model");
 const mongoose = require("mongoose");
 const { submitToGoogleForm } = require("./form");
-const { randomUUID } = require("crypto");
+const { randomUUID, randomInt } = require("crypto");
 const Preloved = require("./controller/preloved");
+const { default: logger } = require("./logger");
 
 const multerUpload = multer({
     storage: multer.diskStorage({
@@ -84,12 +85,17 @@ app.use(
         { name: "product_video", maxCount: 1 },
     ]),
     async (req, res) => {
+        const requestId = randomUUID();
+        const startTime = new Date().getTime();
         try {
             const files = req.files;
-            const preloved = new Preloved();
+            const preloved = new Preloved({ logId: requestId, startTime });
             await preloved.submitForm({ formData: req.body }, files);
             console.log("Form submitted successfully");
             res.status(201).json({ message: "Form submitted successfully" });
+            logger.info("Form submitted successfully", {
+                meta: { logId: requestId },
+            });
         } catch (error) {
             console.error(error);
             res.status(500).send({
