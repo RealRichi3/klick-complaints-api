@@ -52,7 +52,9 @@ class Preloved {
     async submitForm({ formData }, files) {
         const { seller_email } = formData;
 
-        this.logTimeTaken("FORM_RECEIVED");
+        this.logTimeTaken("FORM_RECEIVED", {
+            meta: { seller_email, ...formData },
+        });
         // console.log({ files });
 
         const serviceAccountAuth = new JWT({
