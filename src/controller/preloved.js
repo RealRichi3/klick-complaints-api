@@ -142,7 +142,7 @@ class Preloved {
         const doc = new GoogleSpreadsheet(
             process.env.GOOGLE_SHEET_ID,
             serviceAccountAuth,
-        ).catch(logGSheetSetup);
+        );
         logGSheetSetup();
 
         const logLoadingInfo = this.logTimeTaken("LOADING_GOOGLE_SHEET");
