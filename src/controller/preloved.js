@@ -35,9 +35,20 @@ class Preloved {
             },
         });
 
-        return () => {
+        return (relogMeta) => {
             const endTime = new Date().getTime();
             const timeTaken = endTime - cuurentLogStartTime;
+            if (relogMeta instanceof Error) {
+                logger.error(`[END] ${logName} : ${timeTaken / 1000}s`, {
+                    meta: {
+                        logId: this.logId,
+                        ...(meta ?? {}),
+                        identifier: logIdentifier,
+                        timeSpent: timeTaken / 1000 + "s",
+                    },
+                });
+                throw error;
+            }
             logger.info(`[END] ${logName} : ${timeTaken / 1000}s`, {
                 meta: {
                     logId: this.logId,
@@ -71,22 +82,26 @@ class Preloved {
             const relog = this.logTimeTaken("UPLOADING_IMAGE", {
                 meta: { file },
             });
-            const res = cloudinary.uploadImageToCloudinary({
-                path: file.path,
-                fileName: file.filename,
-                destinationPath,
-            });
+            const res = cloudinary
+                .uploadImageToCloudinary({
+                    path: file.path,
+                    fileName: file.filename,
+                    destinationPath,
+                })
+                .catch(relog);
             relog();
             return res;
         };
 
         const uploadVideo = async (file, destinationPath) => {
             const relog = this.logTimeTaken("UPLOADING_VIDEO", { meta: file });
-            const res = cloudinary.uploadVideoToCloudinary({
-                path: file.path,
-                fileName: file.filename,
-                destinationPath,
-            });
+            const res = cloudinary
+                .uploadVideoToCloudinary({
+                    path: file.path,
+                    fileName: file.filename,
+                    destinationPath,
+                })
+                .catch(relog);
             relog();
             return res;
         };
@@ -117,7 +132,7 @@ class Preloved {
             Object.values(files).map(
                 async (file) => await fs.unlink(file[0].path),
             ),
-        );
+        ).catch(logDeleteFile);
         logDeleteFile();
 
         const requestBody = { ...formData, ...filesMapping };
@@ -127,15 +142,17 @@ class Preloved {
         const doc = new GoogleSpreadsheet(
             process.env.GOOGLE_SHEET_ID,
             serviceAccountAuth,
-        );
+        ).catch(logGSheetSetup);
         logGSheetSetup();
 
         const logLoadingInfo = this.logTimeTaken("LOADING_GOOGLE_SHEET");
-        await doc.loadInfo();
+        await doc.loadInfo().catch(logLoadingInfo);
         logLoadingInfo();
 
         const logGetLTN = this.logTimeTaken("GETTING_LAST_TRACKING_NUMBER");
-        const lastTrackingNumber = await redisClient.get("lastTrackingNumber");
+        const lastTrackingNumber = await redisClient
+            .get("lastTrackingNumber")
+            .catch(logGetLTN);
         logGetLTN();
 
         const trackingNumber = lastTrackingNumber
@@ -146,39 +163,43 @@ class Preloved {
         const sheet = doc.sheetsByIndex[0];
 
         const logAddRow = this.logTimeTaken("SETTING_HEADER_ROW");
-        await sheet.setHeaderRow(Object.keys(requestBody));
+        await sheet.setHeaderRow(Object.keys(requestBody)).catch(logAddRow);
         logAddRow();
 
         const logAddingRow = this.logTimeTaken("ADDING_ROW_TO_SHEET");
-        await sheet.addRow(requestBody);
+        await sheet.addRow(requestBody).catch(logAddingRow);
         logAddingRow();
 
         const logSettingTN = this.logTimeTaken("SETTING_LAST_TRACKING_NUMBER");
-        await redisClient.set("lastTrackingNumber", trackingNumber.toString());
+        await redisClient
+            .set("lastTrackingNumber", trackingNumber.toString())
+            .catch(logSettingTN);
         logSettingTN();
 
         try {
             const logSendEmail = this.logTimeTaken("SENDING_EMAIL");
-            await axios.post(
-                "https://send.api.mailtrap.io/api/send",
-                {
-                    from: {
-                        email: "mailtrap@klick.africa",
-                        name: "Klick Preloved",
+            await axios
+                .post(
+                    "https://send.api.mailtrap.io/api/send",
+                    {
+                        from: {
+                            email: "mailtrap@klick.africa",
+                            name: "Klick Preloved",
+                        },
+                        to: [{ email: seller_email }],
+                        template_uuid: "45290ebf-7550-46e1-b266-820424f488fe",
+                        template_variables: {
+                            tracking_number: trackingNumber.toString(),
+                        },
                     },
-                    to: [{ email: seller_email }],
-                    template_uuid: "45290ebf-7550-46e1-b266-820424f488fe",
-                    template_variables: {
-                        tracking_number: trackingNumber.toString(),
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${process.env.EMAIL_PASS}`,
+                        },
                     },
-                },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${process.env.EMAIL_PASS}`,
-                    },
-                },
-            );
+                )
+                .catch(logSendEmail);
             logSendEmail();
         } catch (error) {
             console.error(
