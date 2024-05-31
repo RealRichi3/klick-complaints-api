@@ -5,7 +5,7 @@ const redisClient = require("../redis");
 const axios = require("axios");
 const fs = require("fs").promises; // Use promises for async file operations
 const { MailtrapClient } = require("mailtrap");
-const { default: logger } = require("../logger");
+const { logger } = require("../logger");
 const { randomUUID } = require("crypto");
 
 const mailTrapClient = new MailtrapClient({
@@ -22,11 +22,12 @@ class Preloved {
         this.startTime = new Date();
     }
 
-    async logTimeTaken(logName, meta) {
+    logTimeTaken(logName, meta) {
         const endTime = new Date().getTime();
         const timeTaken = endTime - this.startTime;
+        const cuurentLogStartTime = new Date().getTime();
         const logIdentifier = randomUUID();
-        logger.info(`[START]-${logName}-${this.logId}: ${timeTaken / 1000}s`, {
+        logger.info(`[START] ${logName} : ${timeTaken / 1000}s`, {
             meta: {
                 logId: this.logId,
                 ...(meta ?? {}),
@@ -36,17 +37,15 @@ class Preloved {
 
         return () => {
             const endTime = new Date().getTime();
-            const timeTaken = endTime - this.startTime;
-            logger.info(
-                `[END]-${logName}-${this.logId}: ${timeTaken / 1000}s`,
-                {
-                    meta: {
-                        logId: this.logId,
-                        ...(meta ?? {}),
-                        identifier: logIdentifier,
-                    },
+            const timeTaken = endTime - cuurentLogStartTime;
+            logger.info(`[END] ${logName} : ${timeTaken / 1000}s`, {
+                meta: {
+                    logId: this.logId,
+                    ...(meta ?? {}),
+                    identifier: logIdentifier,
+                    timeSpent: timeTaken / 1000 + "s",
                 },
-            );
+            });
         };
     }
 
@@ -113,7 +112,9 @@ class Preloved {
         // Delete the files after uploading
         const logDeleteFile = this.logTimeTaken("DELETING_FILES");
         await Promise.all(
-            Object.values(files).map((file) => fs.unlink(file[0].path)),
+            Object.values(files).map(
+                async (file) => await fs.unlink(file[0].path),
+            ),
         );
         logDeleteFile();
 

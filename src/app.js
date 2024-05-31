@@ -11,8 +11,8 @@ const Complaint = require("./model");
 const mongoose = require("mongoose");
 const { submitToGoogleForm } = require("./form");
 const { randomUUID, randomInt } = require("crypto");
+const { logger } = require("./logger");
 const Preloved = require("./controller/preloved");
-const { default: logger } = require("./logger");
 
 const multerUpload = multer({
     storage: multer.diskStorage({
@@ -75,7 +75,7 @@ app.use("/upload", multerUpload.single("image"), async (req, res) => {
     }
 });
 
-app.use(
+app.post(
     "/preloved",
     multerUpload.fields([
         { name: "front_side_image", maxCount: 1 },
@@ -98,6 +98,8 @@ app.use(
             });
         } catch (error) {
             console.error(error);
+            logger.error(error, { meta: { logId: requestId } });
+
             res.status(500).send({
                 status: "error",
                 message: "An error occurred while submitting the form",

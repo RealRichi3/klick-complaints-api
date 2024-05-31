@@ -26,6 +26,9 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.7",
     "nodemon": "^3.0.2",
-    "uuidv4": "^6.2.13"
+    "util": "^0.12.5",
+    "uuidv4": "^6.2.13",
+    "winston": "^3.13.0",
+    "winston-mongodb": "^5.1.1"
   }
 }
